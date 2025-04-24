@@ -11,6 +11,9 @@ const SHIPS = [
 let playerGrid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill("~"));
 let aiGrid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill("~"));
 let playerShips = [];
+let aiMoves = []; // Tracks AI's past moves
+let lastHit = null; // Last coordinate hit by AI
+let huntTargets = []; // Queue of coordinates to try during hunt mode
 
 function parseCoord(coord) {
   const match = coord.match(/^([A-Ja-j])([1-9]|10)$/);
@@ -44,6 +47,79 @@ function placeShip(grid, row, col, size, direction, symbol) {
     }
   }
 }
+
+function placeAIShips() {
+  for (const ship of SHIPS) {
+    let placed = false;
+
+    while (!placed) {
+      const direction = Math.random() < 0.5 ? "H" : "V";
+      const row = Math.floor(Math.random() * GRID_SIZE);
+      const col = Math.floor(Math.random() * GRID_SIZE);
+
+      if (canPlaceShip(aiGrid, row, col, ship.size, direction)) {
+        placeShip(aiGrid, row, col, ship.size, direction, ship.name[0]);
+        placed = true;
+      }
+    }
+  }
+}
+
+function isValidCoord(row, col) {
+  return row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE;
+}
+
+function enqueueHuntTargets(row, col) {
+  const directions = [
+    { dr: -1, dc: 0 }, // up
+    { dr: 1, dc: 0 },  // down
+    { dr: 0, dc: -1 }, // left
+    { dr: 0, dc: 1 }   // right
+  ];
+
+  for (const { dr, dc } of directions) {
+    const r = row + dr;
+    const c = col + dc;
+    if (isValidCoord(r, c) && !aiMoves.some(m => m.row === r && m.col === c)) {
+      huntTargets.push({ row: r, col: c });
+    }
+  }
+}
+
+function aiTurn(term) {
+  let row, col;
+
+  // If we are hunting
+  if (huntTargets.length > 0) {
+    const target = huntTargets.shift();
+    row = target.row;
+    col = target.col;
+  } else {
+    // Random fire until hit
+    do {
+      row = Math.floor(Math.random() * GRID_SIZE);
+      col = Math.floor(Math.random() * GRID_SIZE);
+    } while (aiMoves.some(m => m.row === row && m.col === col));
+  }
+
+  aiMoves.push({ row, col });
+
+  const cell = playerGrid[row][col];
+  const coordStr = `${String.fromCharCode(65 + row)}${col + 1}`;
+
+  if (cell !== "~") {
+    term.writeln(`🤖 AI fires at ${coordStr} — 💥 HIT!`);
+    playerGrid[row][col] = "X"; // mark as hit
+
+    // Start hunt mode from this hit
+    lastHit = { row, col };
+    enqueueHuntTargets(row, col);
+  } else {
+    term.writeln(`🤖 AI fires at ${coordStr} — 🌊 Miss.`);
+    playerGrid[row][col] = "O"; // mark as miss
+  }
+}
+
 
 document.addEventListener("DOMContentLoaded", () => {
     const term = new Terminal({
@@ -122,6 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
     switch (cmd) {
       case "start":
         term.writeln("🚀 Starting the game...");
+        // TODO: Add game initialization logic, including placeAIShips()
         break;
       case "help":
         term.writeln("Available commands:");
@@ -131,6 +208,9 @@ document.addEventListener("DOMContentLoaded", () => {
         break;
       case "stats":
         term.writeln("📊 Games Played: 0 | Wins: 0 | Losses: 0");
+        break;
+      case "testai": // Add testai command
+        aiTurn(term);
         break;
       default:
         // Check if the default case should handle the split command or the original cmd
