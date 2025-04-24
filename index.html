@@ -34,11 +34,15 @@
       height: 400px;
       overflow: hidden;
     }
+    .terminal-wrapper .xterm {
+  text-align: left !important;
+}
+
   </style>
 </head>
 <body class="p-4">
 
-  <div class="container text-center">
+  <div class="container">
     <h1 class="text-light mb-4">🛳️ Battleship Terminal Game</h1>
 
     <!-- Command Buttons -->
@@ -55,8 +59,12 @@
     </div>
 
     <!-- Terminal Container -->
-    <div class="terminal-wrapper">
-      <div id="terminal"></div>
+    <div class="row">
+      <div class="col-lg-8 mx-auto"> <!-- Added mx-auto to center the column -->
+        <div class="terminal-wrapper">
+          <div id="terminal"></div>
+        </div>
+      </div>
     </div>
   </div>
 
