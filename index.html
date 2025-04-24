@@ -29,11 +29,13 @@
     button {
       margin: 0.25rem;
     }
-    #coordGrid button {
-      min-width: 44px;
-      font-weight: bold;
-      text-align: center;
+    #coordGrid {
+      display: grid;
+      grid-template-columns: repeat(10, auto); /* 10 columns for A1–A10, B1–B10, etc. */
+      justify-content: center;
+      gap: 0.35rem;
     }
+
 
   </style>
 </head>
@@ -60,7 +62,7 @@
     <div class="container my-3">
       <div class="card bg-dark text-light p-3 shadow-sm">
         <h5>🎯 Fire Coordinates</h5>
-        <div class="d-flex flex-wrap gap-2" id="coordGrid"></div>
+        <div id="coordGrid"></div>
         <!-- Random Placement Button -->
         <button class="btn btn-outline-light mt-2 w-100" id="randomPlaceBtn">
           🎲 Randomly Place My Ships

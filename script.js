@@ -26,20 +26,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const letters = "ABCDEFGHIJ";
 
   letters.split('').forEach(rowLetter => {
-    const rowDiv = document.createElement("div");
-    rowDiv.className = "d-flex flex-wrap justify-content-center mb-2"; // Add row div with flex classes
-
     for (let col = 1; col <= 10; col++) {
       const coord = rowLetter + col;
       const btn = document.createElement("button");
-      btn.className = "btn btn-sm btn-outline-info m-1"; // Add margin
+      // Apply Bootstrap classes for styling and layout within the grid
+      btn.className = "btn btn-sm btn-outline-info"; // Removed margin, grid gap handles spacing
       btn.innerText = coord;
       btn.dataset.coord = coord;
-      btn.id = `btn-${coord}`; // Add an ID for disabling later
+      btn.id = `btn-${coord}`;
 
       btn.addEventListener("click", () => {
         if (!gameActive) return;
 
+        // Check if ships have been placed via the random button
         if (!randomPlacementConfirmed) {
           term.writeln("⚠️ Please place your ships first using '🎲 Place Your Ships'!");
           return;
@@ -49,16 +48,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (result === true) {
           term.writeln(`> Player fires at ${coord}`);
-          btn.disabled = true;
+          btn.disabled = true; // Disable button after firing
           btn.classList.remove("btn-outline-info");
-          btn.classList.add("btn-secondary");
+          btn.classList.add("btn-secondary"); // Change style to indicate it's used
         }
       });
 
-      rowDiv.appendChild(btn); // Append button to row div
+      coordGrid.appendChild(btn); // Directly append button to the grid container
     }
-
-    coordGrid.appendChild(rowDiv); // Append row div to main grid
   });
 
   $("#startBtn").click(() => startGame());
