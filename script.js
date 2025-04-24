@@ -81,6 +81,22 @@ document.addEventListener("DOMContentLoaded", () => {
     performRandomPlacement();
     randomPlacementConfirmed = true;
   });
+
+  $("#playerGridBtn").click(() => {
+    if (!playerGrid) {
+      term.writeln("⚠️ Player grid not initialized yet.");
+      return;
+    }
+    printGrid(term, playerGrid, "Your Grid", true); // Show ships
+  });
+
+  $("#enemyGridBtn").click(() => {
+    if (!aiGrid) {
+      term.writeln("⚠️ Enemy grid not initialized yet.");
+      return;
+    }
+    printGrid(term, aiGrid, "Enemy Grid", false); // Hide ships
+  });
 });
 
 function intro() {
