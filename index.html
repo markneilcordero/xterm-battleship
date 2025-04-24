@@ -68,6 +68,49 @@
     </div>
   </div>
 
+  <!-- Ship Placement UI -->
+  <div class="container my-4">
+    <div class="card bg-dark text-light p-3 shadow-sm">
+      <h5>🚢 Place Ship (Click to Select)</h5>
+      
+      <!-- Ship Selection -->
+      <div class="mb-2">
+        <strong>Ship:</strong>
+        <div id="shipButtons" class="btn-group flex-wrap">
+          <button class="btn btn-sm btn-outline-light" data-ship="Carrier">Carrier</button>
+          <button class="btn btn-sm btn-outline-light" data-ship="Battleship">Battleship</button>
+          <button class="btn btn-sm btn-outline-light" data-ship="Cruiser">Cruiser</button>
+          <button class="btn btn-sm btn-outline-light" data-ship="Submarine">Submarine</button>
+          <button class="btn btn-sm btn-outline-light" data-ship="Destroyer">Destroyer</button>
+        </div>
+      </div>
+
+      <!-- Coordinate Selection -->
+      <div class="mb-2">
+        <strong>Position:</strong>
+        <div id="coordButtons" class="btn-group flex-wrap">
+          <!-- JS will generate A1–J10 -->
+        </div>
+      </div>
+
+      <!-- Direction -->
+      <div class="mb-2">
+        <strong>Direction:</strong>
+        <div id="dirButtons" class="btn-group">
+          <button class="btn btn-sm btn-outline-light" data-dir="H">Horizontal</button>
+          <button class="btn btn-sm btn-outline-light" data-dir="V">Vertical</button>
+        </div>
+      </div>
+
+      <!-- Place Button -->
+      <div class="mt-3">
+        <button class="btn btn-success w-100" id="confirmPlaceBtn">
+          <i class="fas fa-check-circle me-1"></i>Place Ship
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Rules Modal -->
   <div class="modal fade" id="rulesModal" tabindex="-1" aria-labelledby="rulesModalLabel" aria-hidden="true">
     <div class="modal-dialog">

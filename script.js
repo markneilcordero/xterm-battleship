@@ -300,6 +300,66 @@ document.addEventListener("DOMContentLoaded", () => {
     term.writeln("🛳️ Welcome to Battleship Terminal Game!");
     term.writeln("Type 'start' to begin or 'help' for commands.\n");
 
+    // Generate Coordinate Buttons (A1 to J10)
+    const coordContainer = document.getElementById("coordButtons");
+    if (coordContainer) { // Check if the container exists
+      const rows = "ABCDEFGHIJ";
+      for (let r = 0; r < 10; r++) {
+        for (let c = 1; c <= 10; c++) {
+          const coord = `${rows[r]}${c}`;
+          const btn = document.createElement("button");
+          btn.className = "btn btn-sm btn-outline-light m-1";
+          btn.innerText = coord;
+          btn.dataset.coord = coord;
+          coordContainer.appendChild(btn);
+        }
+      }
+    }
+
+    // Handle Button Clicks and Command Execution
+    let selectedShip = "";
+    let selectedCoord = "";
+    let selectedDir = "";
+
+    // Highlight and store selected ship
+    $("#shipButtons button").on("click", function () {
+      selectedShip = this.dataset.ship;
+      $("#shipButtons button").removeClass("active");
+      this.classList.add("active");
+    });
+
+    // Highlight and store selected coord
+    $("#coordButtons").on("click", "button", function () {
+      selectedCoord = this.dataset.coord;
+      $("#coordButtons button").removeClass("active");
+      this.classList.add("active");
+    });
+
+    // Highlight and store selected direction
+    $("#dirButtons button").on("click", function () {
+      selectedDir = this.dataset.dir;
+      $("#dirButtons button").removeClass("active");
+      this.classList.add("active");
+    });
+
+    // Confirm & Place
+    $("#confirmPlaceBtn").on("click", function () {
+      if (!selectedShip || !selectedCoord || !selectedDir) {
+        term.writeln("❌ Please select ship, position, and direction.");
+        return;
+      }
+
+      const command = `place ${selectedShip} ${selectedCoord} ${selectedDir}`;
+      term.writeln(`> ${command}`);
+      handleCommand(command.toLowerCase(), term);
+
+      // Optional: Reset selections after placing
+      // selectedShip = "";
+      // selectedCoord = "";
+      // selectedDir = "";
+      // $("#shipButtons button, #coordButtons button, #dirButtons button").removeClass("active");
+    });
+
     // Stats Modal Content Update Listener
     const statsModal = document.getElementById('statsModal');
     if (statsModal) { // Check if element exists
