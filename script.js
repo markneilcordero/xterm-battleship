@@ -27,14 +27,22 @@ let gameStats = {
 };
 
 function loadStats() {
-  const saved = localStorage.getItem("battleship_stats");
-  if (saved) {
-    gameStats = JSON.parse(saved);
+  try { // Add try...catch
+    const saved = localStorage.getItem("battleship_stats");
+    if (saved) {
+      gameStats = JSON.parse(saved);
+    }
+  } catch (e) { // Add catch block
+    console.error("Stats load failed:", e);
   }
 }
 
 function saveStats() {
-  localStorage.setItem("battleship_stats", JSON.stringify(gameStats));
+  try { // Add try...catch
+    localStorage.setItem("battleship_stats", JSON.stringify(gameStats));
+  } catch (e) { // Add catch block
+    console.error("Stats save failed:", e);
+  }
 }
 
 // 5. Reset Game State Function
@@ -156,7 +164,10 @@ function aiTurn(term) {
     playerGrid[row][col] = "X"; // mark as hit
 
     // Check if player lost
-    if (checkVictory(playerGrid, "Player", term)) return; // Pass term here
+    if (checkVictory(playerGrid, "Player", term)) {
+        saveGameState(); // Save state on game over
+        return;
+    }
 
     // Start hunt mode from this hit
     lastHit = { row, col };
@@ -168,6 +179,7 @@ function aiTurn(term) {
 
   // Switch turn back to player
   isPlayerTurn = true;
+  saveGameState(); // Auto-save after AI turn
   term.writeln("🧠 Your turn! Type: fire [coord]");
 }
 
@@ -196,13 +208,86 @@ function checkVictory(grid, owner, term) { // Added term parameter
 
   saveStats();
   showRestartPrompt(term); // Pass term here
+  saveGameState(); // Save state when game ends
   return true;
+}
+
+// 2. Game State: saveGameState() & loadGameState()
+function saveGameState() {
+  const state = {
+    playerGrid,
+    aiGrid,
+    isPlayerTurn,
+    aiMoves,
+    lastHit,
+    huntTargets,
+    gameOver,
+    // Save ship counts as well
+    aiShipsRemaining,
+    playerShipsRemaining,
+    playerShips // Save placed player ships
+  };
+
+  try {
+    localStorage.setItem("battleship_game_state", JSON.stringify(state));
+    // Optional: Add term.writeln("💾 Game state saved."); if needed, but might be noisy with auto-save
+
+    // Trigger save toast
+    const toastEl = document.getElementById('saveToast');
+    if (toastEl) { // Check if element exists
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+    }
+
+  } catch (e) {
+    console.error("Save failed:", e);
+    // Optional: term.writeln("❌ Error saving game state.");
+  }
+}
+
+function loadGameState(term) {
+  try {
+    const saved = localStorage.getItem("battleship_game_state");
+    if (!saved) {
+      term.writeln("⚠️ No saved game found.");
+      return false; // Indicate failure
+    }
+
+    const state = JSON.parse(saved);
+    playerGrid = state.playerGrid;
+    aiGrid = state.aiGrid;
+    isPlayerTurn = state.isPlayerTurn;
+    aiMoves = state.aiMoves || [];
+    lastHit = state.lastHit || null;
+    huntTargets = state.huntTargets || [];
+    gameOver = state.gameOver;
+    // Restore ship counts and placed ships
+    aiShipsRemaining = state.aiShipsRemaining !== undefined ? state.aiShipsRemaining : SHIPS.length;
+    playerShipsRemaining = state.playerShipsRemaining !== undefined ? state.playerShipsRemaining : SHIPS.length;
+    playerShips = state.playerShips || [];
+
+
+    term.writeln("✅ Game state restored.");
+    // Optionally display the current state/grids after loading
+    // displayGrids(term); // Assuming a function to display grids exists
+    if (!gameOver) {
+        term.writeln(isPlayerTurn ? "🧠 Your turn!" : "🤖 AI's turn.");
+    } else {
+        showRestartPrompt(term);
+    }
+    return true; // Indicate success
+  } catch (e) {
+    console.error("Load failed:", e);
+    term.writeln("❌ Error loading game state.");
+    return false; // Indicate failure
+  }
 }
 
 
 document.addEventListener("DOMContentLoaded", () => {
     loadStats(); // Load stats when the DOM is ready
 
+    // ... existing terminal setup ...
     const term = new Terminal({
       cursorBlink: true,
       fontSize: 14,
@@ -211,11 +296,33 @@ document.addEventListener("DOMContentLoaded", () => {
         foreground: "#00FF00"
       }
     });
-  
     term.open(document.getElementById("terminal"));
     term.writeln("🛳️ Welcome to Battleship Terminal Game!");
     term.writeln("Type 'start' to begin or 'help' for commands.\\n");
-  
+
+    // Stats Modal Content Update Listener
+    const statsModal = document.getElementById('statsModal');
+    if (statsModal) { // Check if element exists
+        statsModal.addEventListener('show.bs.modal', () => {
+            const statsContent = document.getElementById('statsContent');
+            if (statsContent) { // Check if element exists
+                statsContent.innerHTML = `
+                    <div class="text-center">
+                    <h5>📊 Your Game Stats</h5>
+                    <p><strong>Games Played:</strong> ${gameStats.gamesPlayed}</p>
+                    <p><strong>Wins:</strong> ${gameStats.wins}</p>
+                    <p><strong>Losses:</strong> ${gameStats.losses}</p>
+                    <p><strong>Win Rate:</strong> ${
+                        gameStats.gamesPlayed > 0
+                        ? ((gameStats.wins / gameStats.gamesPlayed) * 100).toFixed(2)
+                        : "0.00"
+                    }%</p>
+                    </div>
+                `;
+            }
+        });
+    }
+
     // Example input listener
     let input = "";
     term.onKey(({ key, domEvent }) => {
@@ -233,9 +340,9 @@ document.addEventListener("DOMContentLoaded", () => {
         term.write(key);
       }
     });
-  });
+});
 
-  function handleCommand(cmd, term) {
+function handleCommand(cmd, term) {
     if (gameOver && !["restart", "stats", "help"].includes(cmd.trim().split(" ")[0])) {
         term.writeln("⛔ The game is over. Type 'restart' to play again.");
         showRestartPrompt(term);
@@ -320,10 +427,12 @@ document.addEventListener("DOMContentLoaded", () => {
       // Check win condition
       if (checkVictory(aiGrid, "AI", term)) { // Pass term here
         // Victory message handled within checkVictory
+        saveGameState(); // Save state on game over
         return;
       }
 
       isPlayerTurn = false;
+      saveGameState(); // Auto-save after player's successful move
 
       // Delay for realism
       term.writeln("🤖 AI is thinking...");
@@ -331,6 +440,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!gameOver) { // Check if game didn't end on player's turn
             aiTurn(term);
             // AI's turn might end the game, checkVictory is called within aiTurn if it hits
+            // saveGameState() is called within aiTurn or checkVictory
         }
       }, 1000);
 
@@ -351,6 +461,7 @@ document.addEventListener("DOMContentLoaded", () => {
         term.writeln(" Ship placement phase (Use 'place' command). Type 'ready' when done?"); // Placeholder
         // For now, let's assume player places ships then starts firing
         isPlayerTurn = true; // Player starts
+        saveGameState(); // Save initial state after placing AI ships
         break;
       case "help":
         term.writeln("Available commands:");
@@ -371,9 +482,28 @@ document.addEventListener("DOMContentLoaded", () => {
         term.writeln(` Losses: ${gameStats.losses}`);
         term.writeln(` Win Rate: ${winRate}%`);
         break;
+      case "save": // Add save command
+        saveGameState();
+        term.writeln("💾 Game state saved manually."); // Provide feedback for manual save
+        break;
+      case "load": // Add load command
+        loadGameState(term);
+        // Maybe redraw grids or show current turn after load
+        break;
+      case "clear": // Add clear command
+        localStorage.removeItem("battleship_stats");
+        localStorage.removeItem("battleship_game_state");
+        gameStats = { gamesPlayed: 0, wins: 0, losses: 0 }; // Reset in-memory stats too
+        term.writeln("🧹 LocalStorage cleared. Stats and saved game deleted.");
+        // Optionally reset the current game state as well
+        // resetGame();
+        // term.writeln("🔄 Game reset. Type 'start' to begin a new game.");
+        break;
       case "restart": // 4. Add restart Command
         resetGame();
+        placeAIShips(); // Need to place AI ships again for the new game
         term.writeln("🔄 Game has been reset. Place your ships and type 'start' to play again.");
+        saveGameState(); // Save the fresh state after reset
         // Optionally clear the terminal: term.clear();
         break;
       case "testai": // Add testai command
@@ -386,4 +516,4 @@ document.addEventListener("DOMContentLoaded", () => {
             term.writeln("❌ Unknown command. Type 'help' to see available commands.");
         }
     }
-  }
+}
