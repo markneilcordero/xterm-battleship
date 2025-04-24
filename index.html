@@ -20,9 +20,23 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
 
     <style>
-      body {
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow-x: hidden; /* Prevent horizontal scroll */
         background-color: #121212;
-        color: white;
+        color: white; /* Moved color here */
+      }
+
+      body {
+        /* Removed background-color and color */
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        overflow-y: auto; /* Only scroll vertically if necessary */
+        /* Keep existing padding from body class="p-4" */
       }
 
       #terminal {
@@ -34,20 +48,32 @@
 
       .terminal-wrapper {
         width: 100%;
+        max-width: 900px; /* Added max-width */
         background: black;
         border-radius: 10px;
         box-shadow: 0 0 20px lime;
         padding: 1rem;
         height: 400px;
-        overflow: auto;
+        overflow-y: auto; /* Changed from overflow: auto */
+        overflow-x: hidden; /* Added */
 
-        /* Hide scrollbar visually */
-        scrollbar-width: none; /* Firefox */
-        -ms-overflow-style: none; /* Internet Explorer 10+ */
+        /* Custom scrollbar (for WebKit & Firefox) */
+        scrollbar-width: thin;              /* Firefox */
+        scrollbar-color: lime transparent;  /* Firefox track & thumb */
       }
 
       .terminal-wrapper::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, Opera */
+        width: 6px;                         /* Slim scrollbar for WebKit */
+      }
+
+      .terminal-wrapper::-webkit-scrollbar-thumb {
+        background-color: lime;
+        border-radius: 10px;
+      }
+
+      .terminal-wrapper::-webkit-scrollbar-track {
+        background: transparent; /* Changed from #1e1e1e */
+        /* Removed border-radius */
       }
 
       button {
@@ -56,9 +82,22 @@
 
       #coordGrid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(38px, 1fr));
-        gap: 0.35rem;
+        grid-template-columns: repeat(auto-fit, minmax(32px, 1fr)); /* Updated */
+        gap: 0.25rem; /* Updated */
         justify-content: center;
+      }
+
+      /* Adjust button font and padding for better mobile spacing */
+      #coordGrid button {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.4rem;
+      }
+
+      /* For very small screens, reduce grid columns further */
+      @media (max-width: 480px) {
+        #coordGrid {
+          grid-template-columns: repeat(5, 1fr); /* 5 buttons per row */
+        }
       }
 
       @media (min-width: 576px) {
@@ -78,10 +117,22 @@
           grid-template-columns: repeat(10, 1fr);
         }
       }
+
+      /* Stack controls vertically on small screens */
+      @media (max-width: 576px) {
+        .btn {
+          width: 100%;
+        }
+
+        .d-flex.flex-wrap.justify-content-center {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
     </style>
   </head>
   <body class="p-4">
-    <div class="container">
+    <div class="container" style="max-width: 960px;">
       <h1 class="text-center mb-4">🛳️ Battleship Terminal Game</h1>
 
       <!-- Terminal -->
