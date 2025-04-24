@@ -314,7 +314,10 @@ function showLogs() {
   term.writeln("📜 Game Logs:");
 
   if (logs && logs.length > 0) {
-    logs.forEach(log => term.writeln("- " + log));
+    logs.forEach(log => {
+      const emojiLog = log.includes('Hit') ? '💥 ' + log : '🌊 ' + log;
+      term.writeln("- " + emojiLog);
+    });
   } else {
     term.writeln("⚠️ No current logs yet.");
   }
@@ -323,7 +326,10 @@ function showLogs() {
   // Only show stored logs if there are no current logs (to avoid duplication after game ends)
   if (stored && (!logs || logs.length === 0)) {
     term.writeln("📁 Previous Logs from Last Game:");
-    JSON.parse(stored).forEach(log => term.writeln("- " + log));
+    JSON.parse(stored).forEach(log => {
+        const emojiLog = log.includes('Hit') ? '💥 ' + log : '🌊 ' + log;
+        term.writeln("- " + emojiLog);
+    });
   }
 
   term.writeln(""); // extra line for spacing
