@@ -14,6 +14,10 @@ let playerShips = [];
 let aiMoves = []; // Tracks AI's past moves
 let lastHit = null; // Last coordinate hit by AI
 let huntTargets = []; // Queue of coordinates to try during hunt mode
+let isPlayerTurn = true;
+let gameOver = false;
+let aiShipsRemaining = SHIPS.length;
+let playerShipsRemaining = SHIPS.length;
 
 function parseCoord(coord) {
   const match = coord.match(/^([A-Ja-j])([1-9]|10)$/);
@@ -120,6 +124,16 @@ function aiTurn(term) {
   }
 }
 
+function checkVictory(grid) {
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      if (!["~", "O", "X"].includes(grid[row][col])) {
+        return false; // still has ship part
+      }
+    }
+  }
+  return true;
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     const term = new Terminal({
@@ -191,6 +205,67 @@ document.addEventListener("DOMContentLoaded", () => {
       placeShip(playerGrid, coords.row, coords.col, ship.size, direction, ship.name[0]);
       playerShips.push({ ...ship, placed: true });
       term.writeln(`✅ Placed ${ship.name} at ${coord.toUpperCase()} (${direction})`);
+      return;
+    }
+
+    if (tokens[0] === "fire") {
+      if (tokens.length !== 2) {
+        term.writeln("❌ Usage: fire [Coord] (e.g., fire C7)");
+        return;
+      }
+
+      if (!isPlayerTurn || gameOver) {
+        term.writeln("⛔ It's not your turn or the game is over.");
+        return;
+      }
+
+      const coord = tokens[1].toUpperCase();
+      const { row, col } = parseCoord(coord) || {};
+
+      if (row === undefined || col === undefined) {
+        term.writeln("❌ Invalid coordinate. Use A1–J10.");
+        return;
+      }
+
+      const cell = aiGrid[row][col];
+
+      if (cell === "X" || cell === "O") {
+        term.writeln("⚠️ You already fired at that spot!");
+        return;
+      }
+
+      // HIT or MISS
+      if (cell !== "~") {
+        aiGrid[row][col] = "X";
+        term.writeln(`🎯 You fired at ${coord} — 💥 HIT!`);
+        // Optionally track sunk ship
+      } else {
+        aiGrid[row][col] = "O";
+        term.writeln(`🌊 You fired at ${coord} — Miss.`);
+      }
+
+      // Check win condition
+      if (checkVictory(aiGrid)) {
+        term.writeln("🏆 You win! All enemy ships are destroyed.");
+        gameOver = true;
+        return;
+      }
+
+      isPlayerTurn = false;
+
+      // Delay for realism
+      term.writeln("🤖 AI is thinking...");
+      setTimeout(() => {
+        aiTurn(term);
+        if (checkVictory(playerGrid)) {
+          term.writeln("💀 You lost. All your ships have been sunk.");
+          gameOver = true;
+          return;
+        }
+        isPlayerTurn = true;
+        term.writeln("🧠 Your turn! Type: fire [coord]");
+      }, 1000);
+
       return;
     }
 
