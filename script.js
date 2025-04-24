@@ -158,48 +158,50 @@ function printGrid(term, grid, title = "Grid", revealShips = false) {
 
 function startGame() {
   playerGrid = createGrid();
-  aiGrid = createGrid();
+  aiGrid = createGrid(); // Initialize AI grid but don't place ships yet
   logs = [];
   gameActive = true;
+  randomPlacementConfirmed = false; // Reset flag
+  randomPlacementLocked = false; // Reset lock
 
-  // Disable Start button
+  // Disable Start button to prevent re-init
   $("#startBtn").prop("disabled", true);
-
-  // Do not place ships automatically.
-  // Let the player place them manually via the random button.
-  if (!randomPlacementConfirmed) {
-    term.writeln("🛠️ Please place your ships first using the 'Randomly Place My Ships' button.");
-    // Show an empty grid initially
-    printGrid(term, createGrid(), "Your Grid", false);
-    // Re-enable start button and set game inactive until ships are placed
-    $("#startBtn").prop("disabled", false);
-    gameActive = false;
-    return; // Stop the game start process here
-  } else {
-    // If ships were placed, print the actual grid
-    printGrid(term, playerGrid, "Your Grid", true);
-  }
-
-  placeShips(aiGrid); // Always place AI ships
+  // Enable Random Place button
+  $("#randomPlaceBtn").prop("disabled", false).text("🎲 Place Your Ships");
 
   term.clear();
-  term.writeln("✅ Game started!");
-
-  // Player grid is already printed by the else block above if placement was done
-
-  playerTurn();
+  term.writeln("✅ Game initialized!");
+  term.writeln("🧭 Click '🎲 Place Your Ships' until you're satisfied.");
+  term.writeln("💥 Then, start firing by clicking a coordinate button!");
+  // Do NOT print grids or start turns here yet.
 }
 
+// Ensure playerTurn exists if it was removed by previous edits
 function playerTurn() {
   if (!gameActive) return;
   term.writeln("🎯 Your turn! Click a coordinate button to fire.");
 }
 
 function handlePlayerMove(coord) {
-  // Lock random placement on first move
+  // Lock random placement and place AI ships on the very first player move
   if (!randomPlacementLocked) {
+    if (!randomPlacementConfirmed) {
+        term.writeln("⚠️ Please place your ships first using '🎲 Place Your Ships'!");
+        // Re-enable the button that was just clicked, as the turn didn't proceed
+        const btnId = `btn-${coord}`;
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove("btn-secondary");
+            btn.classList.add("btn-outline-info");
+        }
+        return; // Prevent firing before placement
+    }
     $("#randomPlaceBtn").prop("disabled", true).text("🚫 Placement Locked");
     randomPlacementLocked = true; // Set the lock flag
+    placeShips(aiGrid); // Place AI ships now that player has committed
+    term.writeln("🤖 AI ships have been placed. The battle begins!");
+    printGrid(term, aiGrid, "Enemy Grid", false); // Show the initial empty enemy grid
   }
 
   // Convert A-J to 0-9 for row, 1-10 to 0-9 for col
@@ -215,6 +217,14 @@ function handlePlayerMove(coord) {
   // Check if already targeted
   if (["X", "O"].includes(aiGrid[row][col])) {
      term.writeln("⚠️ Already targeted! Choose another coordinate.");
+     // Re-enable the button that was just clicked, as the turn didn't proceed
+     const btnId = `btn-${coord}`;
+     const btn = document.getElementById(btnId);
+     if (btn) {
+         btn.disabled = false;
+         btn.classList.remove("btn-secondary");
+         btn.classList.add("btn-outline-info");
+     }
      return; // Don't proceed, wait for next valid click
   }
 
@@ -246,6 +256,7 @@ function handlePlayerMove(coord) {
   }, 1000);
 }
 
+// Ensure aiTurn exists if it was removed by previous edits
 function aiTurn() {
   let row, col;
   do {
@@ -322,25 +333,30 @@ function resetGame() {
   gameActive = false; // Ensure game is inactive
   randomPlacementConfirmed = false; // Reset the flag
   randomPlacementLocked = false; // Reset the lock flag
-  // Re-enable random placement button
-  $("#randomPlaceBtn").prop("disabled", false).text("🎲 Random Place");
+  // Re-enable random placement button and reset text
+  $("#randomPlaceBtn").prop("disabled", true).text("🎲 Place Your Ships"); // Disabled until Start
   // Re-enable Start button
-  $("#startBtn").prop("disabled", false);
+  $("#startBtn").prop("disabled", false); // Enable Start button again
   intro();
 }
 
 function performRandomPlacement() {
+  // Ensure game is active or at least initialized to allow placement
+  if (!playerGrid) {
+      term.writeln("⚠️ Please click 'Start Game' first to initialize.");
+      return;
+  }
+  // Check if placement is locked
+  if (randomPlacementLocked) {
+      term.writeln("🚫 Placement is locked after the first shot!");
+      return;
+  }
+
   playerGrid = createGrid(); // Clear grid before placing
   placeShips(playerGrid);
+  printGrid(term, playerGrid, "Your Grid", true); // Show the newly placed ships
+
   term.writeln("🎲 Ships placed randomly for you!");
-  printGrid(term, playerGrid, "Your Grid", true); // Print grid after placement
-
-  // Update button text but keep it enabled until first shot
-  $("#randomPlaceBtn").prop("disabled", false).text("🎲 Place Again");
-
-  // Set the confirmation flag so startGame knows ships are placed
-  randomPlacementConfirmed = true;
-
-  // Enable the start button, allowing the game to begin
-  $("#startBtn").prop("disabled", false);
+  $("#randomPlaceBtn").prop("disabled", false).text("🎲 Place Again"); // Keep enabled, update text
+  randomPlacementConfirmed = true; // Mark that placement has occurred at least once
 }
