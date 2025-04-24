@@ -300,6 +300,12 @@ document.addEventListener("DOMContentLoaded", () => {
     term.writeln("🛳️ Welcome to Battleship Terminal Game!");
     term.writeln("Type 'start' to begin or 'help' for commands.\n");
 
+    // Trigger the 'start' command when the Start Game button is clicked
+    document.getElementById("startGameBtn").addEventListener("click", () => {
+      term.writeln("> start");
+      handleCommand("start", term);
+    });
+
     // Generate Coordinate Buttons (A1 to J10)
     const coordContainer = document.getElementById("coordButtons");
     if (coordContainer) { // Check if the container exists
@@ -413,7 +419,7 @@ function handleCommand(cmd, term) {
 
     if (tokens[0] === "place") {
       if (tokens.length !== 4) {
-        term.writeln("❌ Usage: place [ShipName] [Coord] [H/V]");
+        term.writeln("❌ Usage: place [ShipName] [Coord] [H/V] (e.g., place Carrier A1 H)");
         return;
       }
 
