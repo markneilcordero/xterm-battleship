@@ -47,8 +47,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   $("#startBtn").click(() => startGame());
-  $("#playerGridBtn").click(() => displayGrid(playerGrid, false));
-  $("#enemyGridBtn").click(() => displayGrid(aiGrid, true));
   $("#logsBtn").click(() => showLogs());
   $("#restartBtn").click(() => resetGame());
 });
@@ -60,7 +58,8 @@ function intro() {
 }
 
 function createGrid() {
-  return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill("⬜"));
+  // Use "~" for empty water cells as expected by the new printGrid
+  return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill("~"));
 }
 
 function placeShips(grid) {
@@ -73,6 +72,7 @@ function placeShips(grid) {
 
       if (canPlaceShip(grid, row, col, ship.size, dir)) {
         for (let i = 0; i < ship.size; i++) {
+          // Keep using "🚢" for ships, printGrid handles display logic
           if (dir === "H") grid[row][col + i] = "🚢";
           else grid[row + i][col] = "🚢";
         }
@@ -86,25 +86,37 @@ function canPlaceShip(grid, row, col, size, dir) {
   if ((dir === "H" && col + size > GRID_SIZE) || (dir === "V" && row + size > GRID_SIZE))
     return false;
   for (let i = 0; i < size; i++) {
-    if ((dir === "H" && grid[row][col + i] !== "⬜") ||
-        (dir === "V" && grid[row + i][col] !== "⬜"))
+    // Check against "~" for empty cells
+    if ((dir === "H" && grid[row][col + i] !== "~") ||
+        (dir === "V" && grid[row + i][col] !== "~"))
       return false;
   }
   return true;
 }
 
-function displayGrid(grid, hideShips = false) {
+// Replace displayGrid with the new printGrid function
+function printGrid(term, grid, title = "Grid", revealShips = false) {
   if (!grid) return;
-  term.writeln("   A B C D E F G H I J");
-  grid.forEach((row, i) => {
-    let line = (i + 1).toString().padStart(2, ' ') + " ";
-    row.forEach(cell => {
-      line += (hideShips && cell === "🚢" ? "⬜" : cell) + " ";
-    });
-    term.writeln(line);
-  });
-  term.writeln("");
+  term.writeln(`\n📍 ${title}`);
+  // Use 1-10 for column headers
+  term.writeln("   1 2 3 4 5 6 7 8 9 10");
+  for (let row = 0; row < GRID_SIZE; row++) {
+    // Use A-J for row labels
+    const rowLabel = String.fromCharCode(65 + row);
+    const line = grid[row].map(cell => {
+      if (cell === "X") return "💥";    // Hit
+      if (cell === "O") return "🌊";    // Miss
+      // Check for ship marker "🚢"
+      if (cell === "🚢" && !revealShips) return "⬜"; // Hide ship
+      if (cell === "🚢") return "🚢";    // Show ship
+      return "⬜";                      // Empty water ("~")
+    }).join(" ");
+    // Adjust spacing for row labels
+    term.writeln(`${rowLabel}  ${line}`);
+  }
+  term.writeln(""); // Add a blank line after the grid
 }
+
 
 function startGame() {
   playerGrid = createGrid();
@@ -116,8 +128,12 @@ function startGame() {
   placeShips(aiGrid);
 
   term.clear();
-  term.writeln("✅ Game started! Here’s your grid:\n");
-  displayGrid(playerGrid, false);
+  term.writeln("✅ Game started!");
+
+  // Use printGrid to show the initial player grid
+  printGrid(term, playerGrid, "Your Grid", true);
+  // Optionally show the initial enemy grid (hidden)
+  // printGrid(term, aiGrid, "Enemy Grid", false);
 
   playerTurn();
 }
@@ -128,35 +144,48 @@ function playerTurn() {
 }
 
 function handlePlayerMove(coord) {
-  const col = coord.charCodeAt(0) - 65;
-  const row = parseInt(coord.slice(1)) - 1;
+  // Convert A-J to 0-9 for row, 1-10 to 0-9 for col
+  const row = coord.charCodeAt(0) - 65;
+  const col = parseInt(coord.slice(1)) - 1;
 
-  if (!coord.match(/^[A-J](10|[1-9])$/) || row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
-    term.writeln("❌ Invalid coordinate selected somehow!"); // Should not happen with buttons
-    // playerTurn(); // Don't recall playerTurn, wait for next button click
+  // Validate coordinates (adjusting for 0-based index)
+  if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+    term.writeln("❌ Invalid coordinate selected somehow!");
     return;
+  }
+
+  // Check if already targeted
+  if (["X", "O"].includes(aiGrid[row][col])) {
+     term.writeln("⚠️ Already targeted! Choose another coordinate.");
+     return; // Don't proceed, wait for next valid click
   }
 
   if (aiGrid[row][col] === "🚢") {
-    aiGrid[row][col] = "💥";
+    aiGrid[row][col] = "X"; // Use "X" for hit
     term.writeln("💥 HIT!");
-  } else if (["⬜"].includes(aiGrid[row][col])) {
-    aiGrid[row][col] = "🌊";
+  } else if (aiGrid[row][col] === "~") { // Check against "~" for miss
+    aiGrid[row][col] = "O"; // Use "O" for miss
     term.writeln("🌊 MISS!");
-  } else {
-    term.writeln("⚠️ Already targeted! Try again.");
-    // playerTurn(); // Don't recall playerTurn, wait for next button click
-    return;
   }
+  // No else needed, already handled already targeted case
 
-  logs.push(`Player fired at ${coord}`);
+  logs.push(`Player fired at ${coord}: ${aiGrid[row][col] === 'X' ? 'Hit' : 'Miss'}`);
+
+  // Display enemy grid after player's move (before AI turn)
+  printGrid(term, aiGrid, "Enemy Grid", false);
+
   if (checkWin(aiGrid)) {
     term.writeln("🎉 YOU WIN! All enemy ships destroyed!");
     endGame();
     return;
   }
 
-  setTimeout(() => aiTurn(), 1000);
+  // AI turn proceeds after a delay
+  setTimeout(() => {
+      if (gameActive) { // Check if game is still active before AI moves
+          aiTurn();
+      }
+  }, 1000);
 }
 
 function aiTurn() {
@@ -164,27 +193,39 @@ function aiTurn() {
   do {
     row = Math.floor(Math.random() * GRID_SIZE);
     col = Math.floor(Math.random() * GRID_SIZE);
-  } while (["💥", "🌊"].includes(playerGrid[row][col]));
+    // Check against "X" and "O" for already targeted cells
+  } while (["X", "O"].includes(playerGrid[row][col]));
 
-  const coord = `${String.fromCharCode(65 + col)}${row + 1}`;
+  // Convert 0-9 back to A-J and 1-10 for display
+  const coord = `${String.fromCharCode(65 + row)}${col + 1}`;
   term.writeln(`🤖 AI attacks ${coord}...`);
 
   if (playerGrid[row][col] === "🚢") {
-    playerGrid[row][col] = "💥";
+    playerGrid[row][col] = "X"; // Use "X" for hit
     term.writeln("💥 AI HIT your ship!");
-  } else {
-    playerGrid[row][col] = "🌊";
+  } else { // Assumes it must be "~" if not "X" or "O"
+    playerGrid[row][col] = "O"; // Use "O" for miss
     term.writeln("🌊 AI missed.");
   }
 
-  logs.push(`AI fired at ${coord}`);
+  logs.push(`AI fired at ${coord}: ${playerGrid[row][col] === 'X' ? 'Hit' : 'Miss'}`);
+
+  // Display both grids after AI's move (before player turn)
+  printGrid(term, playerGrid, "Your Grid", true);
+  // printGrid(term, aiGrid, "Enemy Grid", false); // Already shown after player move
+
   if (checkWin(playerGrid)) {
     term.writeln("💀 YOU LOSE! All your ships are gone.");
     endGame();
     return;
   }
 
-  setTimeout(() => playerTurn(), 1000);
+  // Player turn proceeds after a delay
+  setTimeout(() => {
+      if (gameActive) { // Check if game is still active before prompting player
+          playerTurn();
+      }
+  }, 1000);
 }
 
 function checkWin(grid) {
@@ -216,5 +257,10 @@ function resetGame() {
     btn.classList.remove("btn-secondary");
     btn.classList.add("btn-outline-info");
   });
+  // Clear grids
+  playerGrid = null;
+  aiGrid = null;
+  logs = [];
+  gameActive = false; // Ensure game is inactive
   intro();
 }
