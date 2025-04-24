@@ -19,6 +19,46 @@ let gameOver = false;
 let aiShipsRemaining = SHIPS.length;
 let playerShipsRemaining = SHIPS.length;
 
+// 1. Game Stats Structure (LocalStorage)
+let gameStats = {
+  gamesPlayed: 0,
+  wins: 0,
+  losses: 0
+};
+
+function loadStats() {
+  const saved = localStorage.getItem("battleship_stats");
+  if (saved) {
+    gameStats = JSON.parse(saved);
+  }
+}
+
+function saveStats() {
+  localStorage.setItem("battleship_stats", JSON.stringify(gameStats));
+}
+
+// 5. Reset Game State Function
+function resetGame() {
+  playerGrid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill("~"));
+  aiGrid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill("~"));
+  playerShips = [];
+  aiMoves = [];
+  lastHit = null;
+  huntTargets = [];
+  isPlayerTurn = true;
+  gameOver = false;
+  // Reset ship counts if needed (assuming they are tracked elsewhere or implicitly reset)
+  // aiShipsRemaining = SHIPS.length;
+  // playerShipsRemaining = SHIPS.length;
+  // Note: AI ships need to be placed again after reset if starting a new game.
+}
+
+// 3. Add Restart Prompt
+function showRestartPrompt(term) {
+  term.writeln("\\n🔁 Type `restart` to play again or `stats` to view game stats.");
+}
+
+
 function parseCoord(coord) {
   const match = coord.match(/^([A-Ja-j])([1-9]|10)$/);
   if (!match) return null;
@@ -115,6 +155,9 @@ function aiTurn(term) {
     term.writeln(`🤖 AI fires at ${coordStr} — 💥 HIT!`);
     playerGrid[row][col] = "X"; // mark as hit
 
+    // Check if player lost
+    if (checkVictory(playerGrid, "Player", term)) return; // Pass term here
+
     // Start hunt mode from this hit
     lastHit = { row, col };
     enqueueHuntTargets(row, col);
@@ -122,20 +165,44 @@ function aiTurn(term) {
     term.writeln(`🤖 AI fires at ${coordStr} — 🌊 Miss.`);
     playerGrid[row][col] = "O"; // mark as miss
   }
+
+  // Switch turn back to player
+  isPlayerTurn = true;
+  term.writeln("🧠 Your turn! Type: fire [coord]");
 }
 
-function checkVictory(grid) {
+// 2. Update checkVictory to Identify Winner
+function checkVictory(grid, owner, term) { // Added term parameter
   for (let row = 0; row < GRID_SIZE; row++) {
     for (let col = 0; col < GRID_SIZE; col++) {
-      if (!["~", "O", "X"].includes(grid[row][col])) {
-        return false; // still has ship part
+      // Check if any part of a ship (represented by first letter) remains
+      if (SHIPS.some(ship => grid[row][col] === ship.name[0])) {
+        return false; // Found an unhit ship part
       }
     }
   }
+
+  // If no ship parts found, the game is over for this grid
+  gameOver = true;
+  gameStats.gamesPlayed++;
+
+  if (owner === "AI") { // AI's grid checked, means Player attacked
+    gameStats.wins++; // Player wins
+    term.writeln("🏆 You win! All enemy ships are destroyed.");
+  } else { // Player's grid checked, means AI attacked
+    gameStats.losses++; // Player loses
+    term.writeln("💀 You lost. All your ships have been sunk.");
+  }
+
+  saveStats();
+  showRestartPrompt(term); // Pass term here
   return true;
 }
 
+
 document.addEventListener("DOMContentLoaded", () => {
+    loadStats(); // Load stats when the DOM is ready
+
     const term = new Terminal({
       cursorBlink: true,
       fontSize: 14,
@@ -147,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
     term.open(document.getElementById("terminal"));
     term.writeln("🛳️ Welcome to Battleship Terminal Game!");
-    term.writeln("Type 'start' to begin or 'help' for commands.\n");
+    term.writeln("Type 'start' to begin or 'help' for commands.\\n");
   
     // Example input listener
     let input = "";
@@ -167,8 +234,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
-  
+
   function handleCommand(cmd, term) {
+    if (gameOver && !["restart", "stats", "help"].includes(cmd.trim().split(" ")[0])) {
+        term.writeln("⛔ The game is over. Type 'restart' to play again.");
+        showRestartPrompt(term);
+        return;
+    }
+
     const tokens = cmd.trim().split(" ");
 
     if (tokens[0] === "place") {
@@ -245,9 +318,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // Check win condition
-      if (checkVictory(aiGrid)) {
-        term.writeln("🏆 You win! All enemy ships are destroyed.");
-        gameOver = true;
+      if (checkVictory(aiGrid, "AI", term)) { // Pass term here
+        // Victory message handled within checkVictory
         return;
       }
 
@@ -256,14 +328,10 @@ document.addEventListener("DOMContentLoaded", () => {
       // Delay for realism
       term.writeln("🤖 AI is thinking...");
       setTimeout(() => {
-        aiTurn(term);
-        if (checkVictory(playerGrid)) {
-          term.writeln("💀 You lost. All your ships have been sunk.");
-          gameOver = true;
-          return;
+        if (!gameOver) { // Check if game didn't end on player's turn
+            aiTurn(term);
+            // AI's turn might end the game, checkVictory is called within aiTurn if it hits
         }
-        isPlayerTurn = true;
-        term.writeln("🧠 Your turn! Type: fire [coord]");
       }, 1000);
 
       return;
@@ -272,17 +340,41 @@ document.addEventListener("DOMContentLoaded", () => {
     // Other commands
     switch (cmd) {
       case "start":
+        if (gameOver) {
+            term.writeln("⛔ Game already finished. Type 'restart' first.");
+            return;
+        }
         term.writeln("🚀 Starting the game...");
-        // TODO: Add game initialization logic, including placeAIShips()
+        resetGame(); // Ensure clean state before starting
+        placeAIShips(); // Place AI ships
+        // TODO: Add logic for player ship placement phase or instructions
+        term.writeln(" Ship placement phase (Use 'place' command). Type 'ready' when done?"); // Placeholder
+        // For now, let's assume player places ships then starts firing
+        isPlayerTurn = true; // Player starts
         break;
       case "help":
         term.writeln("Available commands:");
-        term.writeln("- place [ShipName] [Coord] [H/V]");
-        term.writeln("- fire [Coord]");
+        term.writeln("- place [ShipName] [Coord] [H/V] (e.g., place Carrier A1 H)");
+        term.writeln("- fire [Coord] (e.g., fire C7)");
         term.writeln("- stats");
+        term.writeln("- restart");
+        term.writeln("- start (to begin after placing ships or after restart)");
         break;
       case "stats":
-        term.writeln("📊 Games Played: 0 | Wins: 0 | Losses: 0");
+        // 6. Show Stats (updated for terminal)
+        const winRate = gameStats.gamesPlayed > 0
+          ? ((gameStats.wins / gameStats.gamesPlayed) * 100).toFixed(2)
+          : 0;
+        term.writeln("📊 Game Statistics:");
+        term.writeln(` Games Played: ${gameStats.gamesPlayed}`);
+        term.writeln(` Wins: ${gameStats.wins}`);
+        term.writeln(` Losses: ${gameStats.losses}`);
+        term.writeln(` Win Rate: ${winRate}%`);
+        break;
+      case "restart": // 4. Add restart Command
+        resetGame();
+        term.writeln("🔄 Game has been reset. Place your ships and type 'start' to play again.");
+        // Optionally clear the terminal: term.clear();
         break;
       case "testai": // Add testai command
         aiTurn(term);
