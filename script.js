@@ -172,6 +172,9 @@ function startGame() {
   logs = [];
   gameActive = true;
 
+  // Disable Start button
+  $("#startBtn").prop("disabled", true);
+
   // Automatically place player ships if not already done via button
   if (!randomPlacementConfirmed) {
     performRandomPlacement(); // This places ships and prints the grid
@@ -329,6 +332,8 @@ function resetGame() {
   randomPlacementLocked = false; // Reset the lock flag
   // Re-enable random placement button
   $("#randomPlaceBtn").prop("disabled", false).text("🎲 Random Place");
+  // Re-enable Start button
+  $("#startBtn").prop("disabled", false);
   intro();
 }
 
