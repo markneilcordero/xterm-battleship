@@ -38,13 +38,21 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.id = `btn-${coord}`; // Add an ID for disabling later
 
       btn.addEventListener("click", () => {
-        if (!gameActive) return; // Only allow clicks if game is active
-        term.writeln(`> Player fires at ${coord}`);
-        handlePlayerMove(coord);
-        // Disable the button after clicking
-        btn.disabled = true;
-        btn.classList.remove("btn-outline-info");
-        btn.classList.add("btn-secondary");
+        if (!gameActive) return;
+
+        if (!randomPlacementConfirmed) {
+          term.writeln("⚠️ Please place your ships first using '🎲 Place Your Ships'!");
+          return;
+        }
+
+        const result = handlePlayerMove(coord); // returns true if valid move
+
+        if (result === true) {
+          term.writeln(`> Player fires at ${coord}`);
+          btn.disabled = true;
+          btn.classList.remove("btn-outline-info");
+          btn.classList.add("btn-secondary");
+        }
       });
 
       rowDiv.appendChild(btn); // Append button to row div
@@ -254,6 +262,8 @@ function handlePlayerMove(coord) {
           aiTurn();
       }
   }, 1000);
+
+  return true; // Indicate a valid move was processed
 }
 
 // Ensure aiTurn exists if it was removed by previous edits
