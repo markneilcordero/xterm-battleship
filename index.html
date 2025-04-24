@@ -2,21 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Battleship Terminal Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Font Awesome CDN -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-  />
-
-  <!-- Bootstrap 5.3.3 CDN -->
+  <!-- Bootstrap CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-
   <!-- jQuery CDN -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
   <!-- Xterm.js CDN -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css"/>
   <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
@@ -24,143 +16,49 @@
   <style>
     body {
       background-color: #121212;
-      color: #fff;
+      color: white;
     }
     .terminal-wrapper {
-      background-color: #000;
-      border-radius: 1rem; /* Updated */
+      background: black;
+      border-radius: 10px;
+      box-shadow: 0 0 20px lime;
       padding: 1rem;
-      box-shadow: 0 0 25px rgba(0, 255, 0, 0.4); /* Updated */
       height: 400px;
-      overflow: hidden;
+      overflow: auto;
     }
-    .terminal-wrapper .xterm {
-  text-align: left !important;
-}
-
+    button {
+      margin: 0.25rem;
+    }
   </style>
 </head>
 <body class="p-4">
 
-  <div class="container">
-    <h1 class="text-light mb-4">🛳️ Battleship Terminal Game</h1>
+  <div class="container text-center">
+    <h1 class="mb-4">🛳️ Battleship Terminal Game</h1>
 
-    <!-- Command Buttons -->
-    <div class="mb-4 d-flex justify-content-center flex-wrap gap-2">
-      <button class="btn btn-success shadow-sm" id="startGameBtn">
-        <i class="fas fa-play me-1"></i> Start Game <!-- Using Font Awesome -->
-      </button>
-      <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#rulesModal">
-        <i class="fas fa-scroll me-1"></i> View Rules <!-- Using Font Awesome -->
-      </button>
-      <button class="btn btn-warning shadow-sm" data-bs-toggle="modal" data-bs-target="#statsModal">
-        <i class="fas fa-chart-bar me-1"></i> View Stats <!-- Using Font Awesome -->
-      </button>
+    <!-- Controls -->
+    <div>
+      <button class="btn btn-success" id="startBtn">Start Game</button>
+      <button class="btn btn-primary" id="playerGridBtn">View Player Grid</button>
+      <button class="btn btn-info" id="enemyGridBtn">View Enemy Grid</button>
+      <button class="btn btn-warning" id="logsBtn">View Logs</button>
+      <button class="btn btn-danger" id="restartBtn">Restart</button>
     </div>
 
-    <!-- Terminal Container -->
-    <div class="row">
-      <div class="col-lg-8 mx-auto"> <!-- Added mx-auto to center the column -->
-        <div class="terminal-wrapper">
-          <div id="terminal"></div>
-        </div>
+    <!-- Coordinate Buttons UI -->
+    <div class="container my-3">
+      <div class="card bg-dark text-light p-3 shadow-sm">
+        <h5>🎯 Fire Coordinates</h5>
+        <div class="d-flex flex-wrap gap-2" id="coordGrid"></div>
       </div>
     </div>
-  </div>
 
-  <!-- Ship Placement UI -->
-  <div class="container my-4">
-    <div class="card bg-dark text-light p-3 shadow-sm">
-      <h5>🚢 Place Ship (Click to Select)</h5>
-      
-      <!-- Ship Selection -->
-      <div class="mb-2">
-        <strong>Ship:</strong>
-        <div id="shipButtons" class="btn-group flex-wrap">
-          <button class="btn btn-sm btn-outline-light" data-ship="Carrier">Carrier</button>
-          <button class="btn btn-sm btn-outline-light" data-ship="Battleship">Battleship</button>
-          <button class="btn btn-sm btn-outline-light" data-ship="Cruiser">Cruiser</button>
-          <button class="btn btn-sm btn-outline-light" data-ship="Submarine">Submarine</button>
-          <button class="btn btn-sm btn-outline-light" data-ship="Destroyer">Destroyer</button>
-        </div>
-      </div>
-
-      <!-- Coordinate Selection -->
-      <div class="mb-2">
-        <strong>Position:</strong>
-        <div id="coordButtons" class="btn-group flex-wrap">
-          <!-- JS will generate A1–J10 -->
-        </div>
-      </div>
-
-      <!-- Direction -->
-      <div class="mb-2">
-        <strong>Direction:</strong>
-        <div id="dirButtons" class="btn-group">
-          <button class="btn btn-sm btn-outline-light" data-dir="H">Horizontal</button>
-          <button class="btn btn-sm btn-outline-light" data-dir="V">Vertical</button>
-        </div>
-      </div>
-
-      <!-- Place Button -->
-      <div class="mt-3">
-        <button class="btn btn-success w-100" id="confirmPlaceBtn">
-          <i class="fas fa-check-circle me-1"></i>Place Ship
-        </button>
-      </div>
+    <!-- Terminal -->
+    <div class="terminal-wrapper mt-4">
+      <div id="terminal"></div>
     </div>
   </div>
 
-  <!-- Rules Modal -->
-  <div class="modal fade" id="rulesModal" tabindex="-1" aria-labelledby="rulesModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content text-start">
-        <div class="modal-header">
-          <h5 class="modal-title" id="rulesModalLabel">📜 Game Rules</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <ul class="list-group list-group-flush">
-            <li class="list-group-item">Place ships using <code>place Carrier A1 H</code></li>
-            <li class="list-group-item">Fire at enemy using <code>fire D5</code></li>
-            <li class="list-group-item">Use <code>stats</code> to view your record</li>
-            <li class="list-group-item">Type <code>save</code> or <code>load</code> to manage game state</li>
-            <li class="list-group-item">Win by sinking all enemy ships!</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Stats Modal -->
-  <div class="modal fade" id="statsModal" tabindex="-1" aria-labelledby="statsModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content text-start">
-        <div class="modal-header">
-          <h5 class="modal-title" id="statsModalLabel">📊 Game Stats</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <p id="statsContent">Loading stats...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast Container -->
-  <div class="toast-container position-fixed top-0 end-0 p-3">
-    <div class="toast text-bg-success" id="saveToast" role="alert">
-      <div class="toast-body">
-        ✅ Game saved successfully!
-      </div>
-    </div>
-    <!-- Add more toasts here if needed -->
-  </div>
-
-  <!-- Bootstrap Bundle JS (with Popper for modals) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- Custom Script -->
   <script src="script.js"></script>
 </body>
 </html>
