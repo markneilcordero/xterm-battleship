@@ -49,6 +49,18 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#startBtn").click(() => startGame());
   $("#logsBtn").click(() => showLogs());
   $("#restartBtn").click(() => resetGame());
+
+  // Random Placement Handler
+  $("#randomPlaceBtn").click(() => {
+    if (!gameActive) {
+      term.writeln("⚠️ Start the game first!");
+      return;
+    }
+    playerGrid = createGrid(); // Clear grid before placing
+    placeShips(playerGrid);
+    term.writeln("🎲 Ships placed randomly for you!");
+    printGrid(term, playerGrid, "Your Grid", true);
+  });
 });
 
 function intro() {
