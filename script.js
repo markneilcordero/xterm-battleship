@@ -9,6 +9,7 @@ const SHIPS = [
 
 let term, playerGrid, aiGrid, logs, gameActive = false;
 let randomPlacementConfirmed = false;
+let randomPlacementLocked = false; // Add this line
 
 // Init Xterm
 document.addEventListener("DOMContentLoaded", () => {
@@ -53,9 +54,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Random Placement Handler
   $("#randomPlaceBtn").click(() => {
-    if (!gameActive) {
-      term.writeln("⚠️ Start the game first!");
-      return;
+    // Add check for randomPlacementLocked
+    if (!gameActive || randomPlacementLocked) {
+        if (randomPlacementLocked) term.writeln("🚫 Placement is locked after the first shot!");
+        else term.writeln("⚠️ Start the game first!");
+        return;
     }
 
     if (randomPlacementConfirmed) {
@@ -148,16 +151,25 @@ function startGame() {
   logs = [];
   gameActive = true;
 
-  placeShips(playerGrid);
-  placeShips(aiGrid);
+  // Automatically place player ships if not already done via button
+  if (!randomPlacementConfirmed) {
+    performRandomPlacement(); // This places ships and prints the grid
+    randomPlacementConfirmed = true; // Mark as confirmed
+    // Ensure the button reflects this state if the game is started without clicking it
+    $("#randomPlaceBtn").prop("disabled", true).text("✅ Ships Placed");
+  } else {
+    // If placement was confirmed via button, ships are already placed.
+    // Just print the grid.
+    printGrid(term, playerGrid, "Your Grid", true);
+  }
+
+  placeShips(aiGrid); // Always place AI ships
 
   term.clear();
   term.writeln("✅ Game started!");
 
-  // Use printGrid to show the initial player grid
-  printGrid(term, playerGrid, "Your Grid", true);
-  // Optionally show the initial enemy grid (hidden)
-  // printGrid(term, aiGrid, "Enemy Grid", false);
+  // Player grid is already printed by performRandomPlacement or the else block above
+  // printGrid(term, playerGrid, "Your Grid", true);
 
   playerTurn();
 }
@@ -168,6 +180,12 @@ function playerTurn() {
 }
 
 function handlePlayerMove(coord) {
+  // Lock random placement on first move
+  if (!randomPlacementLocked) {
+    $("#randomPlaceBtn").prop("disabled", true).text("🚫 Placement Locked");
+    randomPlacementLocked = true;
+  }
+
   // Convert A-J to 0-9 for row, 1-10 to 0-9 for col
   const row = coord.charCodeAt(0) - 65;
   const col = parseInt(coord.slice(1)) - 1;
@@ -287,6 +305,7 @@ function resetGame() {
   logs = [];
   gameActive = false; // Ensure game is inactive
   randomPlacementConfirmed = false; // Reset the flag
+  randomPlacementLocked = false; // Reset the lock flag
   // Re-enable random placement button
   $("#randomPlaceBtn").prop("disabled", false).text("🎲 Random Place");
   intro();
@@ -296,7 +315,7 @@ function performRandomPlacement() {
   playerGrid = createGrid(); // Clear grid before placing
   placeShips(playerGrid);
   term.writeln("🎲 Ships placed randomly for you!");
-  printGrid(term, playerGrid, "Your Grid", true);
+  printGrid(term, playerGrid, "Your Grid", true); // Print grid after placement
 
   // Disable the random placement button
   $("#randomPlaceBtn").prop("disabled", true).text("✅ Ships Placed");
