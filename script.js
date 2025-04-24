@@ -8,6 +8,7 @@ const SHIPS = [
 ];
 
 let term, playerGrid, aiGrid, logs, gameActive = false;
+let randomPlacementConfirmed = false;
 
 // Init Xterm
 document.addEventListener("DOMContentLoaded", () => {
@@ -56,10 +57,21 @@ document.addEventListener("DOMContentLoaded", () => {
       term.writeln("⚠️ Start the game first!");
       return;
     }
-    playerGrid = createGrid(); // Clear grid before placing
-    placeShips(playerGrid);
-    term.writeln("🎲 Ships placed randomly for you!");
-    printGrid(term, playerGrid, "Your Grid", true);
+
+    if (randomPlacementConfirmed) {
+      performRandomPlacement();
+    } else {
+      const modal = new bootstrap.Modal(document.getElementById("randomPlaceModal"));
+      modal.show();
+    }
+  });
+
+  $("#confirmRandomPlacement").click(() => {
+    const modalElement = bootstrap.Modal.getInstance(document.getElementById("randomPlaceModal"));
+    modalElement.hide();
+
+    performRandomPlacement();
+    randomPlacementConfirmed = true;
   });
 });
 
@@ -274,5 +286,21 @@ function resetGame() {
   aiGrid = null;
   logs = [];
   gameActive = false; // Ensure game is inactive
+  randomPlacementConfirmed = false; // Reset the flag
+  // Re-enable random placement button
+  $("#randomPlaceBtn").prop("disabled", false).text("🎲 Random Place");
   intro();
+}
+
+function performRandomPlacement() {
+  playerGrid = createGrid(); // Clear grid before placing
+  placeShips(playerGrid);
+  term.writeln("🎲 Ships placed randomly for you!");
+  printGrid(term, playerGrid, "Your Grid", true);
+
+  // Disable the random placement button
+  $("#randomPlaceBtn").prop("disabled", true).text("✅ Ships Placed");
+
+  // Optionally disable other placement UIs if you had any manual UI
+  // $("#manualPlaceSection").addClass("d-none");
 }
