@@ -59,28 +59,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Random Placement Handler
   $("#randomPlaceBtn").click(() => {
-    // Add check for randomPlacementLocked
-    if (!gameActive || randomPlacementLocked) {
-        if (randomPlacementLocked) term.writeln("🚫 Placement is locked after the first shot!");
-        else term.writeln("⚠️ Start the game first!");
+    // Check if placement is locked (happens after first shot)
+    if (randomPlacementLocked) {
+        term.writeln("🚫 Placement is locked after the first shot!");
         return;
     }
-
-    if (randomPlacementConfirmed) {
-      performRandomPlacement();
-    } else {
-      const modal = new bootstrap.Modal(document.getElementById("randomPlaceModal"));
-      modal.show();
-    }
-  });
-
-  $("#confirmRandomPlacement").click(() => {
-    const modalElement = bootstrap.Modal.getInstance(document.getElementById("randomPlaceModal"));
-    modalElement.hide();
-
+    // Allow placement even if game hasn't formally started via Start button
     performRandomPlacement();
-    randomPlacementConfirmed = true;
+    // No modal needed now
   });
+
+  // Remove the modal confirmation button handler entirely
+  // $("#confirmRandomPlacement").click(() => { ... }); // DELETE THIS
 
   $("#playerGridBtn").click(() => {
     if (!playerGrid) {
@@ -175,15 +165,18 @@ function startGame() {
   // Disable Start button
   $("#startBtn").prop("disabled", true);
 
-  // Automatically place player ships if not already done via button
+  // Do not place ships automatically.
+  // Let the player place them manually via the random button.
   if (!randomPlacementConfirmed) {
-    performRandomPlacement(); // This places ships and prints the grid
-    randomPlacementConfirmed = true; // Mark as confirmed
-    // Ensure the button reflects this state if the game is started without clicking it
-    $("#randomPlaceBtn").prop("disabled", true).text("✅ Ships Placed");
+    term.writeln("🛠️ Please place your ships first using the 'Randomly Place My Ships' button.");
+    // Show an empty grid initially
+    printGrid(term, createGrid(), "Your Grid", false);
+    // Re-enable start button and set game inactive until ships are placed
+    $("#startBtn").prop("disabled", false);
+    gameActive = false;
+    return; // Stop the game start process here
   } else {
-    // If placement was confirmed via button, ships are already placed.
-    // Just print the grid.
+    // If ships were placed, print the actual grid
     printGrid(term, playerGrid, "Your Grid", true);
   }
 
@@ -192,8 +185,7 @@ function startGame() {
   term.clear();
   term.writeln("✅ Game started!");
 
-  // Player grid is already printed by performRandomPlacement or the else block above
-  // printGrid(term, playerGrid, "Your Grid", true);
+  // Player grid is already printed by the else block above if placement was done
 
   playerTurn();
 }
@@ -207,7 +199,7 @@ function handlePlayerMove(coord) {
   // Lock random placement on first move
   if (!randomPlacementLocked) {
     $("#randomPlaceBtn").prop("disabled", true).text("🚫 Placement Locked");
-    randomPlacementLocked = true;
+    randomPlacementLocked = true; // Set the lock flag
   }
 
   // Convert A-J to 0-9 for row, 1-10 to 0-9 for col
@@ -343,9 +335,12 @@ function performRandomPlacement() {
   term.writeln("🎲 Ships placed randomly for you!");
   printGrid(term, playerGrid, "Your Grid", true); // Print grid after placement
 
-  // Disable the random placement button
-  $("#randomPlaceBtn").prop("disabled", true).text("✅ Ships Placed");
+  // Update button text but keep it enabled until first shot
+  $("#randomPlaceBtn").prop("disabled", false).text("🎲 Place Again");
 
-  // Optionally disable other placement UIs if you had any manual UI
-  // $("#manualPlaceSection").addClass("d-none");
+  // Set the confirmation flag so startGame knows ships are placed
+  randomPlacementConfirmed = true;
+
+  // Enable the start button, allowing the game to begin
+  $("#startBtn").prop("disabled", false);
 }
