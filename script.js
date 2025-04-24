@@ -1,10 +1,10 @@
 const GRID_SIZE = 10;
 const SHIPS = [
-  { name: "Carrier", size: 5 },
-  { name: "Battleship", size: 4 },
-  { name: "Cruiser", size: 3 },
-  { name: "Submarine", size: 3 },
-  { name: "Destroyer", size: 2 }
+  { name: "Carrier", size: 1, count: 5 },
+  { name: "Battleship", size: 1, count: 4 },
+  { name: "Cruiser", size: 1, count: 3 },
+  { name: "Submarine", size: 1, count: 3 },
+  { name: "Destroyer", size: 1, count: 2 }
 ];
 
 let term, playerGrid, aiGrid, logs, gameActive = false;
@@ -107,20 +107,22 @@ function createGrid() {
 
 function placeShips(grid) {
   for (const ship of SHIPS) {
-    let placed = false;
-    while (!placed) {
+    let shipsPlaced = 0;
+    while (shipsPlaced < ship.count) {
       const row = Math.floor(Math.random() * GRID_SIZE);
       const col = Math.floor(Math.random() * GRID_SIZE);
-      const dir = Math.random() > 0.5 ? "H" : "V";
 
-      if (canPlaceShip(grid, row, col, ship.size, dir)) {
+      // Always try horizontal placement first for simplicity in this version
+      // A more robust version would try both directions or randomly choose one
+      if (canPlaceShip(grid, row, col, ship.size, "H")) {
         for (let i = 0; i < ship.size; i++) {
-          // Keep using "🚢" for ships, printGrid handles display logic
-          if (dir === "H") grid[row][col + i] = "🚢";
-          else grid[row + i][col] = "🚢";
+          grid[row][col + i] = "🚢"; // Use ship marker
         }
-        placed = true;
+        shipsPlaced++;
       }
+      // Note: This simple version might struggle if the grid gets very full
+      // and horizontal placement keeps failing. A real implementation
+      // might need a maximum attempt count or try vertical placement too.
     }
   }
 }
