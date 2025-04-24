@@ -298,7 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     term.open(document.getElementById("terminal"));
     term.writeln("🛳️ Welcome to Battleship Terminal Game!");
-    term.writeln("Type 'start' to begin or 'help' for commands.\\n");
+    term.writeln("Type 'start' to begin or 'help' for commands.\n");
 
     // Stats Modal Content Update Listener
     const statsModal = document.getElementById('statsModal');
@@ -363,6 +363,12 @@ function handleCommand(cmd, term) {
 
       if (!ship) {
         term.writeln("❌ Invalid ship name.");
+        return;
+      }
+
+      // 3. Prevent duplicate ship placements
+      if (playerShips.find(s => s.name === ship.name)) {
+        term.writeln(`⚠️ ${ship.name} is already placed.`);
         return;
       }
 
@@ -460,16 +466,31 @@ function handleCommand(cmd, term) {
         // TODO: Add logic for player ship placement phase or instructions
         term.writeln(" Ship placement phase (Use 'place' command). Type 'ready' when done?"); // Placeholder
         // For now, let's assume player places ships then starts firing
-        isPlayerTurn = true; // Player starts
+        // isPlayerTurn = true; // Player starts - Moved to 'ready' command
         saveGameState(); // Save initial state after placing AI ships
+        break;
+      // 2. Add ready command
+      case "ready":
+        if (playerShips.length !== SHIPS.length) {
+          term.writeln(`⚠️ You haven't placed all ${SHIPS.length} ships yet. (${playerShips.length} placed)`);
+        } else {
+          term.writeln("✅ All ships placed. Game started! Your turn.");
+          isPlayerTurn = true; // Start the game, player's turn
+          saveGameState(); // Save state after player is ready
+        }
         break;
       case "help":
         term.writeln("Available commands:");
         term.writeln("- place [ShipName] [Coord] [H/V] (e.g., place Carrier A1 H)");
+        term.writeln("- ready (confirm ship placement and start the game)"); // Add ready to help
         term.writeln("- fire [Coord] (e.g., fire C7)");
+        term.writeln("- viewgrid (show your current grid)"); // Add viewgrid to help
         term.writeln("- stats");
         term.writeln("- restart");
-        term.writeln("- start (to begin after placing ships or after restart)");
+        // term.writeln("- start (to begin after placing ships or after restart)"); // Start is less relevant now
+        term.writeln("- save (manually save game state)");
+        term.writeln("- load (load last saved game state)");
+        term.writeln("- clear (delete saved stats and game state)");
         break;
       case "stats":
         // 6. Show Stats (updated for terminal)
@@ -502,9 +523,12 @@ function handleCommand(cmd, term) {
       case "restart": // 4. Add restart Command
         resetGame();
         placeAIShips(); // Need to place AI ships again for the new game
-        term.writeln("🔄 Game has been reset. Place your ships and type 'start' to play again.");
+        term.writeln("🔄 Game has been reset. Place your ships and type 'ready' when done."); // Updated prompt
         saveGameState(); // Save the fresh state after reset
         // Optionally clear the terminal: term.clear();
+        break;
+      case "viewgrid": // Add viewgrid command
+        printPlayerGrid(term);
         break;
       case "testai": // Add testai command
         aiTurn(term);
@@ -516,4 +540,21 @@ function handleCommand(cmd, term) {
             term.writeln("❌ Unknown command. Type 'help' to see available commands.");
         }
     }
+}
+
+// Add a simple grid viewer in terminal
+function printPlayerGrid(term) {
+  term.writeln("🧭 Your Grid:");
+  term.writeln("   1 2 3 4 5 6 7 8 9 10");
+  for (let i = 0; i < GRID_SIZE; i++) {
+    const rowLetter = String.fromCharCode(65 + i);
+    // Display placed ships ('S'), hits ('X'), misses ('O'), and empty water ('.')
+    const rowData = playerGrid[i].map(cell => {
+        if (cell === "~") return "."; // Empty water
+        if (cell === "X") return "X"; // Hit
+        if (cell === "O") return "O"; // Miss
+        return "S"; // Any other non-empty cell is a ship part
+    }).join(" ");
+    term.writeln(`${rowLetter}  ${rowData}`);
+  }
 }
