@@ -26,10 +26,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const letters = "ABCDEFGHIJ";
 
   letters.split('').forEach(rowLetter => {
+    const rowDiv = document.createElement("div");
+    rowDiv.className = "d-flex flex-wrap justify-content-center mb-2"; // Add row div with flex classes
+
     for (let col = 1; col <= 10; col++) {
       const coord = rowLetter + col;
       const btn = document.createElement("button");
-      btn.className = "btn btn-sm btn-outline-info";
+      btn.className = "btn btn-sm btn-outline-info m-1"; // Add margin
       btn.innerText = coord;
       btn.dataset.coord = coord;
       btn.id = `btn-${coord}`; // Add an ID for disabling later
@@ -44,8 +47,10 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.classList.add("btn-secondary");
       });
 
-      coordGrid.appendChild(btn);
+      rowDiv.appendChild(btn); // Append button to row div
     }
+
+    coordGrid.appendChild(rowDiv); // Append row div to main grid
   });
 
   $("#startBtn").click(() => startGame());
