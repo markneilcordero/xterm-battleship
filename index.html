@@ -18,7 +18,11 @@
       background-color: #121212;
       color: white;
     }
+    #terminal {
+      text-align: left !important;
+    }
     .terminal-wrapper {
+      width: 100%;
       background: black;
       border-radius: 10px;
       box-shadow: 0 0 20px lime;
@@ -35,13 +39,16 @@
       justify-content: center;
       gap: 0.35rem;
     }
-
-
+    #terminal {
+      font-family: monospace;
+      line-height: 1.4;
+      white-space: pre-wrap; /* Preserve whitespace and line breaks */
+    }
   </style>
 </head>
 <body class="p-4">
 
-  <div class="container text-center">
+  <div class="container">
     <h1 class="mb-4">🛳️ Battleship Terminal Game</h1>
 
     <!-- Terminal -->
