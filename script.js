@@ -302,14 +302,22 @@ function checkWin(grid) {
 }
 
 function showLogs() {
-  const stored = localStorage.getItem("battleship_logs");
-  if (stored) {
-    term.writeln("📜 Previous Logs:");
-    JSON.parse(stored).forEach(log => term.writeln("- " + log));
+  term.writeln("📜 Game Logs:");
+
+  if (logs && logs.length > 0) {
+    logs.forEach(log => term.writeln("- " + log));
   } else {
-    term.writeln("⚠️ No logs found.");
+    term.writeln("⚠️ No current logs yet.");
   }
-  term.writeln("");
+
+  const stored = localStorage.getItem("battleship_logs");
+  // Only show stored logs if there are no current logs (to avoid duplication after game ends)
+  if (stored && (!logs || logs.length === 0)) {
+    term.writeln("📁 Previous Logs from Last Game:");
+    JSON.parse(stored).forEach(log => term.writeln("- " + log));
+  }
+
+  term.writeln(""); // extra line for spacing
 }
 
 function endGame() {
