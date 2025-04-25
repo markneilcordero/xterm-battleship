@@ -20,7 +20,8 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
 
     <style>
-      html, body {
+      html,
+      body {
         margin: 0;
         padding: 0;
         height: 100%;
@@ -43,7 +44,9 @@
         text-align: left !important;
         font-family: monospace;
         line-height: 1.4;
-        white-space: pre-wrap;
+        white-space: pre-wrap; /* ✅ Wrap long lines */
+        word-break: break-word; /* ✅ Break long words */
+        overflow-wrap: break-word; /* ✅ Ensure compatibility */
       }
 
       .terminal-wrapper {
@@ -58,12 +61,12 @@
         overflow-x: auto; /* Added */
 
         /* Custom scrollbar (for WebKit & Firefox) */
-        scrollbar-width: thin;              /* Firefox */
-        scrollbar-color: lime transparent;  /* Firefox track & thumb */
+        scrollbar-width: thin; /* Firefox */
+        scrollbar-color: lime transparent; /* Firefox track & thumb */
       }
 
       .terminal-wrapper::-webkit-scrollbar {
-        width: 6px;                         /* Slim scrollbar for WebKit */
+        width: 6px; /* Slim scrollbar for WebKit */
       }
 
       .terminal-wrapper::-webkit-scrollbar-thumb {
@@ -82,7 +85,10 @@
 
       #coordGrid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(32px, 1fr)); /* Updated */
+        grid-template-columns: repeat(
+          auto-fit,
+          minmax(32px, 1fr)
+        ); /* Updated */
         gap: 0.25rem; /* Updated */
         justify-content: center;
       }
@@ -132,7 +138,7 @@
     </style>
   </head>
   <body class="p-4">
-    <div class="container" style="max-width: 960px;">
+    <div class="container" style="max-width: 960px">
       <h1 class="text-center mb-4">🛳️ Battleship Terminal Game</h1>
 
       <!-- Terminal -->
